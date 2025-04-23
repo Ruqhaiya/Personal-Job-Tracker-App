@@ -79,5 +79,4 @@ Push your repository to GitHub and follow the Streamlit Cloud deployment steps. 
 
 ## License
 
-This project is open-source and available under the MIT License.
-```
+This project is open-source. 
