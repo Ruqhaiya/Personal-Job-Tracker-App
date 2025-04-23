@@ -62,11 +62,17 @@ else:
         job_description = st.text_area("Paste Job Description", height=300)
 
         def extract_company_name(job_link, job_description):
-            match = re.search(r'https?://(?:www\.)?([a-zA-Z0-9_-]+)\.', job_link)
-            if match:
-                return match.group(1).capitalize()
-            match_desc = re.search(r'at ([A-Z][a-zA-Z0-9&\s]+)', job_description)
-            return match_desc.group(1).strip() if match_desc else "Unknown"
+            # Try to extract from description first (after "at" or "with")
+            match_desc = re.search(r'(?i)(?:at|with)\s+([A-Z][a-zA-Z0-9&.\s]+?)(?=[.,\n])', job_description)
+            if match_desc:
+                return match_desc.group(1).strip()
+
+            # Fallback to extracting from link
+            match_link = re.search(r'https?://(?:www\.)?([a-zA-Z0-9_-]+)\.', job_link)
+            if match_link:
+                return match_link.group(1).capitalize()
+
+            return "Unknown"
 
         def clean_gpt_output(text):
             return re.sub(r"[\*\n]+", " ", text).strip()
