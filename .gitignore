@@ -4,5 +4,5 @@ job_logger.py
 .env
 *.csv
 __pycache__/
-config.yaml
+# config.yaml
 hash_passwords.py

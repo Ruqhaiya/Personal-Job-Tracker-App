@@ -1,0 +1,11 @@
+credentials:
+  usernames:
+    ruqhaiya:
+      name: Ruqhaiya
+      email: ruqhaiyeahhh@gmail.com
+      password: "$2b$12$Ur2alivr8/S6HDHAcYjCKOv5dWhi8CxxKCLJcTQGo1itHrsn0/a/O"
+
+cookie:
+  name: job_tracker_auth
+  key: auth_key_123
+  expiry_days: 1000
