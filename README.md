@@ -1,4 +1,5 @@
-# Job Tracker Web App
+Note: to use the app, email rsyeda@seattleu.edu 
+# Job Tracker Web App (https://trackthatjob.streamlit.app/)
 
 The Job Tracker App is a thoughtfully designed, AI-powered tool that helps you manage your job applications and networking efforts—without the clutter. Unlike overwhelming job tracking tools with complex dashboards and endless fields, this app was built to be minimal, user-friendly, and focused on what actually matters.
 
