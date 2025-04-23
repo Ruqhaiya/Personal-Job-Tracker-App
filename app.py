@@ -34,7 +34,7 @@ if not st.session_state.authenticated:
         if username_input == "ruqhaiya" and password_input == password_check:
             st.session_state.authenticated = True
             st.session_state.username = username_input
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("Invalid username or password")
 else:
