@@ -28,7 +28,7 @@ authenticator = stauth.Authenticate(
 # Attempt login
 # login_info = authenticator.login("Login", location="main")
 
-login_info = authenticator.login(location="main")  # works for v0.2.2
+login_info = authenticator.login("Login", "main")
 
 if login_info:
     name, auth_status, username = login_info
@@ -37,7 +37,7 @@ if login_info:
         authenticator.logout("Logout", "sidebar")
         # st.sidebar.success(f"👋 Welcome, {name}!")
         st.sidebar.success(f"👋 Welcome, {username}!")
-        # st.sidebar.info(f"📧 {credentials['usernames'][username]['email']}")
+        # st.sidebar.info(f"{credentials['usernames'][username]['email']}")
 
 
         st.title(" Job Tracker")
