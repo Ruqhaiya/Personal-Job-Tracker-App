@@ -28,7 +28,9 @@ authenticator = stauth.Authenticate(
 # Attempt login
 # login_info = authenticator.login(location="main")
 
-login_info = authenticator.login("Login", "main")
+# login_info = authenticator.login("Login", "main")
+login_info = authenticator.login(form_name="Login", location="main")
+
 if login_info:
     name, auth_status, username = login_info
 
