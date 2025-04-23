@@ -13,7 +13,6 @@ load_dotenv()
 # openai_key = os.getenv("OPENAI_API_KEY", st.secrets.get("OPENAI_API_KEY", ""))
 # password_check = os.getenv("APP_PASSWORD", st.secrets.get("APP_PASSWORD", ""))
 
-
 openai_key = st.secrets["OPENAI_API_KEY"]
 password_check = st.secrets["APP_PASSWORD"]
 
@@ -46,8 +45,10 @@ else:
         st.experimental_rerun()
 
     st.title("Job Tracker")
+
     if not openai_key:
         st.error("Missing OpenAI API key. Please set it in your environment or Streamlit secrets.")
+    else:
         client = OpenAI(api_key=openai_key)
     csv_path = f"job_tracker_{username}.csv"
     contacts_csv = f"job_contacts_{username}.csv"
