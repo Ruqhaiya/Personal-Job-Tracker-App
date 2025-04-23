@@ -1,6 +1,7 @@
 streamlit
 pandas
 openai
-streamlit-authenticator
 python-dotenv
 pyyaml
+streamlit-authenticator>=0.3.0
+
