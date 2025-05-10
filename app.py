@@ -30,7 +30,7 @@ if not st.session_state.authenticated:
 
     if login_button:
         # Simple username/password check (replace with secure hash check in real use)
-        if username_input == "ruqhaiya" and password_input == password_check:
+        if username_input in ["ruqhaiya", "Missy"] and password_input == password_check:
             st.session_state.authenticated = True
             st.session_state.username = username_input
             st.rerun()
