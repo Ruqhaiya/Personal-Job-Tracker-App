@@ -4,6 +4,10 @@ credentials:
       name: Ruqhaiya
       email: ruqhaiyeahhh@gmail.com
       password: "$2b$12$Ur2alivr8/S6HDHAcYjCKOv5dWhi8CxxKCLJcTQGo1itHrsn0/a/O"
+    ruqhaiya:
+      name: Missy
+      email: xyz@gmail.com
+      password: "$2b$12$Ur2alivr8/S6HDHAcYjCKOv5dWhi8CxxKCLJcTQGo1itHrsn0/a/O"
 
 cookie:
   name: job_tracker_auth
