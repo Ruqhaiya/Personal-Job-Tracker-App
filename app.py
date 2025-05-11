@@ -376,7 +376,7 @@ else:
         df = fetch_job_df(username)
         if df.empty or "Timestamp" not in df.columns:
             st.info("No job data to show. Add a job in the \"Add Job\" tab first.")
-            return  # exit early
+            
         df["Timestamp"] = pd.to_datetime(df["Timestamp"])
         df["Date"] = df["Timestamp"].dt.date
 
