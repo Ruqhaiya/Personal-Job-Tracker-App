@@ -116,132 +116,187 @@ else:
     tab1, tab2, tab_dashboard, tab4 = st.tabs(["Add Job", "Data", "Dashboard", "Networking"])
 
     # --- Add Job Tab ---
-    with tab1:
-        st.header("Add Job to Tracker")
-        job_link = st.text_input("Paste Job Link", placeholder="https://www.linkedin.com/jobs/view/...")
-        job_description = st.text_area("Paste Job Description", height=300)
+    # with tab1:
+    #     st.header("Add Job to Tracker")
+    #     job_link = st.text_input("Paste Job Link", placeholder="https://www.linkedin.com/jobs/view/...")
+    #     job_description = st.text_area("Paste Job Description", height=300)
 
-        def extract_company_name(job_link, job_description):
-            # Try to extract from description first (after "at" or "with")
-            match_desc = re.search(r'(?i)(?:at|with)\s+([A-Z][a-zA-Z0-9&.\s]+?)(?=[.,\n])', job_description)
-            if match_desc:
-                return match_desc.group(1).strip()
-
-            # Fallback to extracting from link
-            match_link = re.search(r'https?://(?:www\.)?([a-zA-Z0-9_-]+)\.', job_link)
-            if match_link:
-                return match_link.group(1).capitalize()
-
+    def extract_company_name(job_link: str, job_description: str) -> str:
+        """
+        Uses OpenAI to reliably extract the company name from a job link and description.
+        Falls back to "Unknown" on any error.
+        """
+        try:
+            prompt = (
+                "You are a data extraction assistant.  \n"
+                "Given a job posting, identify and return only the name of the hiring company.  \n"
+                "If you cannot determine it, return 'Unknown'.\n\n"
+                f"Job Link: {job_link}\n\n"
+                f"Job Description:\n{job_description}"
+            )
+            resp = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system",  "content": "You extract structured fields from unstructured text."},
+                    {"role": "user",    "content": prompt}
+                ]
+            )
+            company = resp.choices[0].message.content.strip()
+            # Make sure we never return an empty string
+            return company if company else "Unknown"
+        except Exception as e:
+            # On error, log and return Unknown
+            st.error(f"Error extracting company name: {e}")
             return "Unknown"
 
-        def clean_gpt_output(text):
-            return re.sub(r"[\*\n]+", " ", text).strip()
 
-        def extract_skills_with_openai(text):
-            try:
-                simple_response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "system", "content": "Return only the top 5 skills from this job description as a comma-separated list, no bullets, no markdown, no explanation."},
-                        {"role": "user", "content": text}
-                    ]
-                )
-                skill_list = clean_gpt_output(simple_response.choices[0].message.content)
+    def clean_gpt_output(text):
+        return re.sub(r"[\*\n]+", " ", text).strip()
 
-                detailed_response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "system", "content": "Write a clean, markdown-free summary of the top 5 required skills in paragraph form (no * or ** or -)."},
-                        {"role": "user", "content": text}
-                    ]
-                )
-                skill_details = clean_gpt_output(detailed_response.choices[0].message.content)
+    def extract_skills_with_openai(text):
+        try:
+            simple_response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "Return only the top 5 skills from this job description as a comma-separated list, no bullets, no markdown, no explanation."},
+                    {"role": "user", "content": text}
+                ]
+            )
+            skill_list = clean_gpt_output(simple_response.choices[0].message.content)
 
-                return skill_list, skill_details
-            except Exception as e:
-                return f"Error: {e}", f"Error: {e}"
+            detailed_response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "Write a clean, markdown-free summary of the top 5 required skills in paragraph form (no * or ** or -)."},
+                    {"role": "user", "content": text}
+                ]
+            )
+            skill_details = clean_gpt_output(detailed_response.choices[0].message.content)
 
-        if st.button("Add to Tracker"):
-            if job_link and job_description:
-                company = extract_company_name(job_link, job_description)
-                skills_list, skills_detail = extract_skills_with_openai(job_description)
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            return skill_list, skill_details
+        except Exception as e:
+            return f"Error: {e}", f"Error: {e}"
 
-                row = {
-                    "Timestamp": timestamp,
-                    "Job Link": job_link,
-                    "Company": company,
-                    "Job Description": job_description,
-                    "Top Skills List": skills_list,
-                    "Detailed Skills Summary": skills_detail
-                }
+        # if st.button("Add to Tracker"):
+        #     if job_link and job_description:
+        #         company = extract_company_name(job_link, job_description)
+        #         skills_list, skills_detail = extract_skills_with_openai(job_description)
+        #         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-                append_job_row(username, row)
+        #         row = {
+        #             "Timestamp": timestamp,
+        #             "Job Link": job_link,
+        #             "Company": company,
+        #             "Job Description": job_description,
+        #             "Top Skills List": skills_list,
+        #             "Detailed Skills Summary": skills_detail
+        #         }
 
-                st.success("Job added successfully!")
-            else:
-                st.warning("Please enter both job link and description.")
+        #         append_job_row(username, row)
 
-    # --- Data Tab  ---
-    with tab2:
-        st.markdown("## Job Tracker Data")
+        #         st.success("Job added successfully!")
+        #     else:
+        #         st.warning("Please enter both job link and description.")
 
-        df = fetch_job_df(username)
-        df["Timestamp"] = pd.to_datetime(df["Timestamp"])
-        # Fallback before rendering the slider
-        if "num_days_slider" not in st.session_state:
-            st.session_state["num_days_slider"] = 30
+    # --- Add Job Tab ---
+    with tab1:
+        st.header("Add Job to Tracker")
 
-        with st.sidebar:
-            st.markdown("### Filters")
+        # Wrap inputs in a st.form so we can have two buttons
+        with st.form("job_form"):
+            job_link = st.text_input(
+                "Paste Job Link",
+                placeholder="https://www.linkedin.com/jobs/view/...",
+                key="job_link_input"
+            )
+            job_description = st.text_area(
+                "Paste Job Description",
+                height=300,
+                key="job_desc_input"
+            )
 
-            with st.form("filter_form"):
-                company_filter = st.text_input("Filter by Company", value=st.session_state.get("company_filter", ""))
-                keyword_filter = st.text_input("Search Keywords", value=st.session_state.get("keyword_filter", ""))
-                # Safely provide a fallback value without writing to session_state directly
-                num_days_value = st.session_state.get("num_days_slider", 30)
-                num_days = st.slider(
-                    "Show jobs from last N days", 0, 60, value=num_days_value, key="num_days_slider"
-                )
+            col1, col2 = st.columns(2)
+            with col1:
+                submit = st.form_submit_button("Add to Tracker")
+            with col2:
+                clear = st.form_submit_button("Clear Form")
 
-                submitted = st.form_submit_button("Apply Filters")
-                reset = st.form_submit_button("Reset Filters")
+            if clear:
+                # Clear the inputs by resetting the session state
+                st.session_state["job_link_input"] = ""
+                st.session_state["job_desc_input"] = ""
+                st.experimental_rerun()
 
-                if reset:
-                    # Remove values safely using pop
-                    st.session_state.pop("company_filter", None)
-                    st.session_state.pop("keyword_filter", None)
-                    st.session_state.pop("num_days_slider", None)
+            if submit:
+                if job_link and job_description:
+                    company = extract_company_name(job_link, job_description)
+                    skills_list, skills_detail = extract_skills_with_openai(job_description)
+                    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                    row = {
+                        "Timestamp": timestamp,
+                        "Job Link": job_link,
+                        "Company": company,
+                        "Job Description": job_description,
+                        "Top Skills List": skills_list,
+                        "Detailed Skills Summary": skills_detail
+                    }
+
+                    append_job_row(username, row)
+                    st.success("Job added successfully!")
+
+                    # Optionally, clear the form right after successful submit
+                    st.session_state["job_link_input"] = ""
+                    st.session_state["job_desc_input"] = ""
                     st.experimental_rerun()
 
-                elif submitted:
-                    st.session_state["company_filter"] = company_filter
-                    st.session_state["keyword_filter"] = keyword_filter
+                else:
+                    st.warning("Please enter both job link and description.")
 
+    # --- Dashboard Tab ---
+    with tab_dashboard:
+        st.markdown("## Job Insights Dashboard")
 
-            # Apply filters from session state
-            filtered_df = df.copy()
+        # Fetch & prepare data
+        df = fetch_job_df(username)
+        df["Timestamp"] = pd.to_datetime(df["Timestamp"])
+        df['Date'] = df['Timestamp'].dt.date
 
-            if st.session_state.get("company_filter"):
-                filtered_df = filtered_df[
-                    filtered_df["Company"].str.contains(st.session_state["company_filter"], case=False, na=False)
-                ]
+        # Summary metrics
+        today = datetime.now()
+        last_day   = df[df['Timestamp'] >= today - timedelta(days=1)]
+        last_week  = df[df['Timestamp'] >= today - timedelta(days=7)]
+        last_month = df[df['Timestamp'] >= today - timedelta(days=30)]
 
-            if st.session_state.get("keyword_filter"):
-                filtered_df = filtered_df[
-                    filtered_df["Top Skills List"].str.contains(st.session_state["keyword_filter"], case=False, na=False) |
-                    filtered_df["Detailed Skills Summary"].str.contains(st.session_state["keyword_filter"], case=False, na=False) |
-                    filtered_df["Job Description"].str.contains(st.session_state["keyword_filter"], case=False, na=False)
-                ]
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Last 1 Day",   f"{len(last_day)}")
+        col2.metric("Last 7 Days",  f"{len(last_week)}")
+        col3.metric("Last 30 Days", f"{len(last_month)}")
 
-            cutoff = pd.Timestamp.now() - pd.Timedelta(days=st.session_state.get("num_days_slider", 30))
-            filtered_df = filtered_df[filtered_df["Timestamp"] >= cutoff]
+        st.markdown("---")
 
-            st.markdown(f"### Showing {len(filtered_df)} Jobs")
-            st.dataframe(filtered_df, use_container_width=True, height=500)
+        # 1) Jobs Over Time (line chart)
+        jobs_per_day = df['Date'].value_counts().sort_index()
+        st.subheader("Jobs Over Time")
+        st.line_chart(jobs_per_day)
 
-            csv = filtered_df.to_csv(index=False)
-            st.download_button("Download Filtered CSV", csv, "filtered_jobs.csv", "text/csv")
+        # 2) Top Companies (bar chart)
+        st.subheader("Top Companies Applied To")
+        company_counts = df['Company'].value_counts().head(10)
+        st.bar_chart(company_counts)
+
+        # 3) Top Skills (bar chart)
+        st.subheader("Top Skills Across All Applications")
+        # explode the comma-separated skill lists into a Series of individual skills
+        all_skills = (
+            df['Top Skills List']
+            .dropna()
+            .str.split(',')
+            .explode()
+            .str.strip()
+        )
+        skill_counts = all_skills.value_counts().head(10)
+        st.bar_chart(skill_counts)
 
     # --- Dashboard Tab ---
     with tab_dashboard:
