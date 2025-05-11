@@ -261,6 +261,77 @@ else:
 
                 else:
                     st.warning("Please enter both job link and description.")
+    # --- Data Tab ---
+    with tab2:
+        st.markdown("## Job Tracker Data")
+        df = fetch_job_df(username)
+
+        if df.empty:
+            st.info("No job data found. Add a job in the \"Add Job\" tab.")
+        else:
+            # Ensure Timestamp is datetime
+            df["Timestamp"] = pd.to_datetime(df["Timestamp"])
+
+            # Initialize filter defaults
+            if "company_filter" not in st.session_state:
+                st.session_state.company_filter = ""
+            if "keyword_filter" not in st.session_state:
+                st.session_state.keyword_filter = ""
+            if "num_days_slider" not in st.session_state:
+                st.session_state.num_days_slider = 30
+
+            # Sidebar filter form
+            with st.sidebar:
+                st.markdown("### Filters")
+                with st.form("filter_form"):
+                    company_filter = st.text_input(
+                        "Filter by Company",
+                        value=st.session_state.company_filter
+                    )
+                    keyword_filter = st.text_input(
+                        "Search Keywords",
+                        value=st.session_state.keyword_filter
+                    )
+                    num_days = st.slider(
+                        "Show jobs from last N days",
+                        0, 60,
+                        value=st.session_state.num_days_slider,
+                        key="num_days_slider"
+                    )
+                    apply = st.form_submit_button("Apply Filters")
+                    reset = st.form_submit_button("Reset Filters")
+
+                    if reset:
+                        st.session_state.company_filter = ""
+                        st.session_state.keyword_filter = ""
+                        st.session_state.num_days_slider = 30
+                        st.experimental_rerun()
+                    if apply:
+                        st.session_state.company_filter = company_filter
+                        st.session_state.keyword_filter = keyword_filter
+
+            # Apply filters
+            filtered = df
+            if st.session_state.company_filter:
+                filtered = filtered[
+                    filtered["Company"]
+                            .str.contains(st.session_state.company_filter, case=False, na=False)
+                ]
+            if st.session_state.keyword_filter:
+                filtered = filtered[
+                    filtered["Top Skills List"].str.contains(st.session_state.keyword_filter, case=False, na=False)
+                | filtered["Detailed Skills Summary"].str.contains(st.session_state.keyword_filter, case=False, na=False)
+                | filtered["Job Description"].str.contains(st.session_state.keyword_filter, case=False, na=False)
+                ]
+            if st.session_state.num_days_slider > 0:
+                cutoff = pd.Timestamp.now() - pd.Timedelta(days=st.session_state.num_days_slider)
+                filtered = filtered[filtered["Timestamp"] >= cutoff]
+
+            # Show table & download
+            st.markdown(f"### Showing {len(filtered)} jobs")
+            st.dataframe(filtered, use_container_width=True, height=400)
+            csv = filtered.to_csv(index=False)
+            st.download_button("Download Filtered CSV", csv, "filtered_jobs.csv", "text/csv")
 
     # --- Dashboard Tab ---
     with tab_dashboard:
@@ -297,40 +368,18 @@ else:
         company_counts = df['Company'].value_counts().head(10)
         st.bar_chart(company_counts)
 
-        # 3) Top Skills (bar chart)
-        st.subheader("Top Skills Across All Applications")
-        # explode the comma-separated skill lists into a Series of individual skills
-        all_skills = (
-            df['Top Skills List']
-            .dropna()
-            .str.split(',')
-            .explode()
-            .str.strip()
-        )
-        skill_counts = all_skills.value_counts().head(10)
-        st.bar_chart(skill_counts)
-
-    # --- Dashboard Tab ---
-    with tab_dashboard:
-        st.markdown("## Job Insights Dashboard")
-        df = fetch_job_df(username)
-        df["Timestamp"] = pd.to_datetime(df["Timestamp"])
-
-        today = datetime.now()
-        df['Date'] = df['Timestamp'].dt.date
-
-        last_day   = df[df['Timestamp'] >= today - timedelta(days=1)]
-        last_week  = df[df['Timestamp'] >= today - timedelta(days=7)]
-        last_month = df[df['Timestamp'] >= today - timedelta(days=30)]
-
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Last 1 Day",   f"{len(last_day)} Jobs")
-        col2.metric("Last 7 Days",  f"{len(last_week)} Jobs")
-        col3.metric("Last 30 Days", f"{len(last_month)} Jobs")
-
-        with st.expander("See more time-based insights"):
-            st.markdown("### Jobs Over Time")
-            st.bar_chart(df['Date'].value_counts().sort_index())
+        # # 3) Top Skills (bar chart)
+        # st.subheader("Top Skills Across All Applications")
+        # # explode the comma-separated skill lists into a Series of individual skills
+        # all_skills = (
+        #     df['Top Skills List']
+        #     .dropna()
+        #     .str.split(',')
+        #     .explode()
+        #     .str.strip()
+        # )
+        # skill_counts = all_skills.value_counts().head(10)
+        # st.bar_chart(skill_counts)
 
 
     # --- Networking Tab ---
