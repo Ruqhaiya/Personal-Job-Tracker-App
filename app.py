@@ -208,11 +208,11 @@ else:
         #     else:
         #         st.warning("Please enter both job link and description.")
 
-    # --- Add Job Tab ---
+   # --- Add Job Tab ---
     with tab1:
         st.header("Add Job to Tracker")
 
-        # Wrap inputs in a st.form so we can have two buttons
+        # Wrap only the submission inside a form
         with st.form("job_form"):
             job_link = st.text_input(
                 "Paste Job Link",
@@ -224,115 +224,110 @@ else:
                 height=300,
                 key="job_desc_input"
             )
+            submitted = st.form_submit_button("Add to Tracker")
 
-            col1, col2 = st.columns(2)
-            with col1:
-                submit = st.form_submit_button("Add to Tracker")
-            with col2:
-                clear = st.form_submit_button("Clear Form")
+        # A separate Clear button, outside the form
+        if st.button("Clear Form"):
+            for k in ("job_link_input", "job_desc_input"):
+                st.session_state[k] = ""
+            st.experimental_rerun()
 
-            if clear:
-                # Clear the inputs by resetting the session state
+        # Handle submission
+        if submitted:
+            if job_link and job_description:
+                company        = extract_company_name(job_link, job_description)
+                skills_list, skills_detail = extract_skills_with_openai(job_description)
+                timestamp      = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                row = {
+                    "Timestamp": timestamp,
+                    "Job Link": job_link,
+                    "Company": company,
+                    "Job Description": job_description,
+                    "Top Skills List": skills_list,
+                    "Detailed Skills Summary": skills_detail
+                }
+                append_job_row(username, row)
+                st.success("Job added successfully!")
+
+                # clear after submit
                 st.session_state["job_link_input"] = ""
                 st.session_state["job_desc_input"] = ""
-                st.rerun()
+                st.experimental_rerun()
+            else:
+                st.warning("Please enter both job link and description.")
 
-            if submit:
-                if job_link and job_description:
-                    company = extract_company_name(job_link, job_description)
-                    skills_list, skills_detail = extract_skills_with_openai(job_description)
-                    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # --- Data Tab ---
+        with tab2:
+            st.markdown("## Job Tracker Data")
+            df = fetch_job_df(username)
 
-                    row = {
-                        "Timestamp": timestamp,
-                        "Job Link": job_link,
-                        "Company": company,
-                        "Job Description": job_description,
-                        "Top Skills List": skills_list,
-                        "Detailed Skills Summary": skills_detail
-                    }
+            if df.empty:
+                st.info("No job data found. Add a job in the \"Add Job\" tab.")
+            else:
+                # Ensure Timestamp is datetime
+                df["Timestamp"] = pd.to_datetime(df["Timestamp"])
 
-                    append_job_row(username, row)
-                    st.success("Job added successfully!")
+                # Initialize filter defaults
+                if "company_filter" not in st.session_state:
+                    st.session_state.company_filter = ""
+                if "keyword_filter" not in st.session_state:
+                    st.session_state.keyword_filter = ""
+                if "num_days_slider" not in st.session_state:
+                    st.session_state.num_days_slider = 30
 
-                    # Optionally, clear the form right after successful submit
-                    st.session_state["job_link_input"] = ""
-                    st.session_state["job_desc_input"] = ""
-                    st.rerun()
+                # Sidebar filter form
+                with st.sidebar:
+                    st.markdown("### Filters")
+                    with st.form("filter_form"):
+                        company_filter = st.text_input(
+                            "Filter by Company",
+                            value=st.session_state.company_filter
+                        )
+                        keyword_filter = st.text_input(
+                            "Search Keywords",
+                            value=st.session_state.keyword_filter
+                        )
+                        num_days = st.slider(
+                            "Show jobs from last N days",
+                            0, 60,
+                            value=st.session_state.num_days_slider,
+                            key="num_days_slider"
+                        )
+                        apply = st.form_submit_button("Apply Filters")
+                        reset = st.form_submit_button("Reset Filters")
 
-                else:
-                    st.warning("Please enter both job link and description.")
-    # --- Data Tab ---
-    with tab2:
-        st.markdown("## Job Tracker Data")
-        df = fetch_job_df(username)
+                        if reset:
+                            st.session_state.company_filter = ""
+                            st.session_state.keyword_filter = ""
+                            st.session_state.num_days_slider = 30
+                            st.experimental_rerun()
+                        if apply:
+                            st.session_state.company_filter = company_filter
+                            st.session_state.keyword_filter = keyword_filter
 
-        if df.empty:
-            st.info("No job data found. Add a job in the \"Add Job\" tab.")
-        else:
-            # Ensure Timestamp is datetime
-            df["Timestamp"] = pd.to_datetime(df["Timestamp"])
+                # Apply filters
+                filtered = df
+                if st.session_state.company_filter:
+                    filtered = filtered[
+                        filtered["Company"]
+                                .str.contains(st.session_state.company_filter, case=False, na=False)
+                    ]
+                if st.session_state.keyword_filter:
+                    filtered = filtered[
+                        filtered["Top Skills List"].str.contains(st.session_state.keyword_filter, case=False, na=False)
+                    | filtered["Detailed Skills Summary"].str.contains(st.session_state.keyword_filter, case=False, na=False)
+                    | filtered["Job Description"].str.contains(st.session_state.keyword_filter, case=False, na=False)
+                    ]
+                if st.session_state.num_days_slider > 0:
+                    cutoff = pd.Timestamp.now() - pd.Timedelta(days=st.session_state.num_days_slider)
+                    filtered = filtered[filtered["Timestamp"] >= cutoff]
 
-            # Initialize filter defaults
-            if "company_filter" not in st.session_state:
-                st.session_state.company_filter = ""
-            if "keyword_filter" not in st.session_state:
-                st.session_state.keyword_filter = ""
-            if "num_days_slider" not in st.session_state:
-                st.session_state.num_days_slider = 30
-
-            # Sidebar filter form
-            with st.sidebar:
-                st.markdown("### Filters")
-                with st.form("filter_form"):
-                    company_filter = st.text_input(
-                        "Filter by Company",
-                        value=st.session_state.company_filter
-                    )
-                    keyword_filter = st.text_input(
-                        "Search Keywords",
-                        value=st.session_state.keyword_filter
-                    )
-                    num_days = st.slider(
-                        "Show jobs from last N days",
-                        0, 60,
-                        value=st.session_state.num_days_slider,
-                        key="num_days_slider"
-                    )
-                    apply = st.form_submit_button("Apply Filters")
-                    reset = st.form_submit_button("Reset Filters")
-
-                    if reset:
-                        st.session_state.company_filter = ""
-                        st.session_state.keyword_filter = ""
-                        st.session_state.num_days_slider = 30
-                        st.experimental_rerun()
-                    if apply:
-                        st.session_state.company_filter = company_filter
-                        st.session_state.keyword_filter = keyword_filter
-
-            # Apply filters
-            filtered = df
-            if st.session_state.company_filter:
-                filtered = filtered[
-                    filtered["Company"]
-                            .str.contains(st.session_state.company_filter, case=False, na=False)
-                ]
-            if st.session_state.keyword_filter:
-                filtered = filtered[
-                    filtered["Top Skills List"].str.contains(st.session_state.keyword_filter, case=False, na=False)
-                | filtered["Detailed Skills Summary"].str.contains(st.session_state.keyword_filter, case=False, na=False)
-                | filtered["Job Description"].str.contains(st.session_state.keyword_filter, case=False, na=False)
-                ]
-            if st.session_state.num_days_slider > 0:
-                cutoff = pd.Timestamp.now() - pd.Timedelta(days=st.session_state.num_days_slider)
-                filtered = filtered[filtered["Timestamp"] >= cutoff]
-
-            # Show table & download
-            st.markdown(f"### Showing {len(filtered)} jobs")
-            st.dataframe(filtered, use_container_width=True, height=400)
-            csv = filtered.to_csv(index=False)
-            st.download_button("Download Filtered CSV", csv, "filtered_jobs.csv", "text/csv")
+                # Show table & download
+                st.markdown(f"### Showing {len(filtered)} jobs")
+                st.dataframe(filtered, use_container_width=True, height=400)
+                csv = filtered.to_csv(index=False)
+                st.download_button("Download Filtered CSV", csv, "filtered_jobs.csv", "text/csv")
 
     # --- Dashboard Tab ---
     with tab_dashboard:
