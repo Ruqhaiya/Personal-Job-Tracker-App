@@ -5,7 +5,8 @@ from openai import OpenAI
 import re
 import os
 from dotenv import load_dotenv
-
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
 import json
 import gspread
 from google.oauth2.service_account import Credentials
@@ -376,7 +377,7 @@ else:
         df = fetch_job_df(username)
         if df.empty or "Timestamp" not in df.columns:
             st.info("No job data to show. Add a job in the \"Add Job\" tab first.")
-            
+
         df["Timestamp"] = pd.to_datetime(df["Timestamp"])
         df["Date"] = df["Timestamp"].dt.date
 

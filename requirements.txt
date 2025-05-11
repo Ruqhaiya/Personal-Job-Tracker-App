@@ -6,4 +6,5 @@ pyyaml
 streamlit-authenticator>=0.3.0
 gspread
 google-auth
+wordcloud
 
