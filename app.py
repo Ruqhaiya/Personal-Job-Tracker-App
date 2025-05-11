@@ -338,41 +338,6 @@ else:
     with tab_dashboard:
         st.markdown("## Job Insights Dashboard")
 
-        # Fetch & prepare data
-        df = fetch_job_df(username)
-        if df.empty or "Timestamp" not in df.columns:
-            st.info("No job data to show. Add a job in the \"Add Job\" tab first.")
-        else:
-            df["Timestamp"] = pd.to_datetime(df["Timestamp"])
-            df["Date"] = df["Timestamp"].dt.date
-
-        # Summary metrics
-        today = datetime.now()
-        last_day   = df[df['Timestamp'] >= today - timedelta(days=1)]
-        last_week  = df[df['Timestamp'] >= today - timedelta(days=7)]
-        last_month = df[df['Timestamp'] >= today - timedelta(days=30)]
-
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Last 1 Day",   f"{len(last_day)}")
-        col2.metric("Last 7 Days",  f"{len(last_week)}")
-        col3.metric("Last 30 Days", f"{len(last_month)}")
-
-        st.markdown("---")
-
-        # 1) Jobs Over Time (line chart)
-        jobs_per_day = df['Date'].value_counts().sort_index()
-        st.subheader("Jobs Over Time")
-        st.line_chart(jobs_per_day)
-
-        # 2) Top Companies (bar chart)
-        st.subheader("Top Companies Applied To")
-        company_counts = df['Company'].value_counts().head(10)
-        st.bar_chart(company_counts)
-
-    # --- Dashboard Tab ---
-    with tab_dashboard:
-        st.markdown("## Job Insights Dashboard")
-
         # 1) Fetch & prepare data
         df = fetch_job_df(username)
         if df.empty or "Timestamp" not in df.columns:
