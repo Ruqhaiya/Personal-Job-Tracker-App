@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import json
 import gspread
 from google.oauth2.service_account import Credentials
+import base64, json
 
 st.set_page_config(page_title="Job Tracker", layout="wide")
 
@@ -19,12 +20,20 @@ openai_key = st.secrets["OPENAI_API_KEY"]
 password_check = st.secrets["APP_PASSWORD"]
 
 def get_gsheet_client():
-    creds_info = json.loads(st.secrets["GCP_SA_JSON"])
+    # 1. Base64-decode the JSON
+    b64 = st.secrets["GCP_SA_B64"]
+    creds_json = base64.b64decode(b64).decode("utf-8")
+
+    # 2. Parse it
+    creds_info = json.loads(creds_json)
+
+    # 3. Build the credentials and authorize
     creds = Credentials.from_service_account_info(
         creds_info,
         scopes=["https://www.googleapis.com/auth/spreadsheets"]
     )
     return gspread.authorize(creds)
+
 
 def get_user_sheet(username):
     client = get_gsheet_client()
