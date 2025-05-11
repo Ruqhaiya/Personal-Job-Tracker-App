@@ -95,7 +95,7 @@ if not st.session_state.authenticated:
         if username_input in ["ruqhaiya", "Missy"] and password_input == password_check:
             st.session_state.authenticated = True
             st.session_state.username = username_input
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("Invalid username or password")
 else:
@@ -104,7 +104,7 @@ else:
     if st.sidebar.button("Logout"):
         st.session_state.authenticated = False
         st.session_state.username = ""
-        st.experimental_rerun()
+        st.rerun()
 
     st.title("Job Tracker")
 
@@ -225,7 +225,7 @@ else:
                 # Clear the inputs by resetting the session state
                 st.session_state["job_link_input"] = ""
                 st.session_state["job_desc_input"] = ""
-                st.experimental_rerun()
+                st.rerun()
 
             if submit:
                 if job_link and job_description:
@@ -248,7 +248,7 @@ else:
                     # Optionally, clear the form right after successful submit
                     st.session_state["job_link_input"] = ""
                     st.session_state["job_desc_input"] = ""
-                    st.experimental_rerun()
+                    st.rerun()
 
                 else:
                     st.warning("Please enter both job link and description.")
