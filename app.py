@@ -368,19 +368,58 @@ else:
         company_counts = df['Company'].value_counts().head(10)
         st.bar_chart(company_counts)
 
-        # # 3) Top Skills (bar chart)
-        # st.subheader("Top Skills Across All Applications")
-        # # explode the comma-separated skill lists into a Series of individual skills
-        # all_skills = (
-        #     df['Top Skills List']
-        #     .dropna()
-        #     .str.split(',')
-        #     .explode()
-        #     .str.strip()
-        # )
-        # skill_counts = all_skills.value_counts().head(10)
-        # st.bar_chart(skill_counts)
+    # --- Dashboard Tab ---
+    with tab_dashboard:
+        st.markdown("## Job Insights Dashboard")
 
+        # 1) Fetch & prepare data
+        df = fetch_job_df(username)
+        if df.empty or "Timestamp" not in df.columns:
+            st.info("No job data to show. Add a job in the \"Add Job\" tab first.")
+            return  # exit early
+        df["Timestamp"] = pd.to_datetime(df["Timestamp"])
+        df["Date"] = df["Timestamp"].dt.date
+
+        # 2) Summary metrics
+        today = datetime.now()
+        last_day   = df[df['Timestamp'] >= today - timedelta(days=1)]
+        last_week  = df[df['Timestamp'] >= today - timedelta(days=7)]
+        last_month = df[df['Timestamp'] >= today - timedelta(days=30)]
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Last 1 Day",   f"{len(last_day)}")
+        col2.metric("Last 7 Days",  f"{len(last_week)}")
+        col3.metric("Last 30 Days", f"{len(last_month)}")
+        st.markdown("---")
+
+        # 3) Jobs Over Time (line chart)
+        st.subheader("Jobs Over Time")
+        jobs_per_day = df['Date'].value_counts().sort_index()
+        st.line_chart(jobs_per_day)
+
+        # 4) Top Companies (bar chart)
+        st.subheader("Top Companies Applied To")
+        company_counts = df['Company'].value_counts().head(10)
+        st.bar_chart(company_counts)
+
+        # 5) Skill Word Cloud
+        st.subheader("Skill Word Cloud")
+        # Prepare skill frequencies
+        all_skills = (
+            df['Top Skills List']
+            .dropna()
+            .str.split(',')
+            .explode()
+            .str.strip()
+        )
+        skill_freq = all_skills.value_counts().to_dict()
+        # Generate & display word cloud
+        from wordcloud import WordCloud
+        import matplotlib.pyplot as plt
+        wc = WordCloud(width=600, height=300, background_color="white").generate_from_frequencies(skill_freq)
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.imshow(wc, interpolation="bilinear")
+        ax.axis("off")
+        st.pyplot(fig)
 
     # --- Networking Tab ---
     with tab4:
